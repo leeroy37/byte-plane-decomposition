@@ -1,10 +1,11 @@
 // gap_measure: Measure the universality gap between shuffle+delta+ZSTD and plain ZSTD.
-// Usage: gap_measure <file> [--block-size N]
+// Usage: gap_measure <file> [--block-size N] [--acf]
 
 #include <bpd/entropy.h>
 #include <bpd/byte_shuffle.h>
 #include <bpd/delta.h>
 #include <bpd/width_detect.h>
+#include <bpd/width_detect_acf.h>
 
 #include <iostream>
 #include <fstream>
@@ -22,10 +23,17 @@ int main(int argc, char* argv[]) {
 
     std::string path = argv[1];
     size_t block_size = 65536;
+    bool use_acf = false;
 
-    for (int i = 2; i < argc; i += 2) {
+    for (int i = 2; i < argc; ) {
         if (std::string(argv[i]) == "--block-size" && i + 1 < argc) {
             block_size = std::stoul(argv[i + 1]);
+            i += 2;
+        } else if (std::string(argv[i]) == "--acf") {
+            use_acf = true;
+            i += 1;
+        } else {
+            i += 1;
         }
     }
 
@@ -54,7 +62,8 @@ int main(int argc, char* argv[]) {
         total_plain += plain_size;
 
         // Shuffle + delta + ZSTD at detected width
-        int width = bpd::detect_width(block, block_size);
+        int width = use_acf ? bpd::detect_width_acf(block, block_size)
+                            : bpd::detect_width(block, block_size);
         if (width > 0) {
             size_t num_elem = block_size / width;
             std::vector<uint8_t> shuffled(block_size);

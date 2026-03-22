@@ -1,10 +1,11 @@
 // bpd_analyze: Per-file entropy analysis with width detection.
-// Usage: bpd_analyze <file> [--block-size N] [--width W]
+// Usage: bpd_analyze <file> [--block-size N] [--width W] [--acf]
 
 #include <bpd/entropy.h>
 #include <bpd/byte_shuffle.h>
 #include <bpd/delta.h>
 #include <bpd/width_detect.h>
+#include <bpd/width_detect_acf.h>
 
 #include <iostream>
 #include <fstream>
@@ -15,19 +16,27 @@
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        std::cerr << "Usage: bpd_analyze <file> [--block-size N] [--width W]\n";
+        std::cerr << "Usage: bpd_analyze <file> [--block-size N] [--width W] [--acf]\n";
         return 1;
     }
 
     std::string path = argv[1];
     size_t block_size = 65536;
     int force_width = -1;
+    bool use_acf = false;
 
-    for (int i = 2; i < argc; i += 2) {
+    for (int i = 2; i < argc; ) {
         if (std::string(argv[i]) == "--block-size" && i + 1 < argc) {
             block_size = std::stoul(argv[i + 1]);
+            i += 2;
         } else if (std::string(argv[i]) == "--width" && i + 1 < argc) {
             force_width = std::stoi(argv[i + 1]);
+            i += 2;
+        } else if (std::string(argv[i]) == "--acf") {
+            use_acf = true;
+            i += 1;
+        } else {
+            i += 1;
         }
     }
 
@@ -62,7 +71,8 @@ int main(int argc, char* argv[]) {
         double block_entropy = bpd::shannon_entropy(block, block_size);
 
         int width = (force_width > 0) ? force_width
-                                       : bpd::detect_width(block, block_size);
+                    : use_acf ? bpd::detect_width_acf(block, block_size)
+                              : bpd::detect_width(block, block_size);
 
         if (width > 0 && block_size >= static_cast<size_t>(width) * 4) {
             size_t num_elem = block_size / width;
@@ -106,7 +116,8 @@ int main(int argc, char* argv[]) {
 
     // Per-plane detail for first block
     int w = (force_width > 0) ? force_width
-                               : bpd::detect_width(data.data(), block_size);
+             : use_acf ? bpd::detect_width_acf(data.data(), block_size)
+                       : bpd::detect_width(data.data(), block_size);
     if (w > 0 && block_size >= static_cast<size_t>(w) * 4) {
         size_t num_elem = block_size / w;
         std::vector<uint8_t> shuffled(block_size);
