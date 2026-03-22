@@ -26,6 +26,9 @@ target_include_directories(bpd INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_executable(bpd_analyze tools/bpd_analyze.cpp)
 target_link_libraries(bpd_analyze bpd)
 
+add_executable(acf_analyze tools/acf_analyze.cpp)
+target_link_libraries(acf_analyze bpd)
+
 add_executable(gap_measure tools/gap_measure.cpp)
 target_link_libraries(gap_measure bpd)
 target_include_directories(gap_measure PRIVATE ${ZSTD_INCLUDE_DIR})
