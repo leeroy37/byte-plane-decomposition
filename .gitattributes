@@ -1,0 +1,12 @@
+# Normalize line endings
+* text=auto
+
+# Force LF for scripts
+*.sh text eol=lf
+*.py text eol=lf
+
+# Mark binary files
+*.bin binary
+*.dat binary
+*.gz binary
+*.zip binary

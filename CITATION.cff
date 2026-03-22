@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+title: "Entropy-Minimized Byte-Plane Decomposition"
+message: "If you use this software, please cite the paper."
+type: software
+authors:
+  - name: "Steffen Goehring"
+license: MIT
+repository-code: "https://github.com/amycomp/byte-plane-decomposition"
+abstract: >-
+  Schema-free detection of optimal byte-plane decomposition width
+  for lossless compression via entropy minimization, with universality
+  gap measurements across structured binary data.
+keywords:
+  - compression
+  - lossless
+  - byte-plane decomposition
+  - entropy
+  - structured data
