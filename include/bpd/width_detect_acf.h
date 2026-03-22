@@ -1,6 +1,6 @@
 #pragma once
-// Algorithm 2: Autocorrelation-based byte-plane width detection.
-// Replaces brute-force candidate set with sampled autocorrelation to find
+// Algorithm 2: Byte-match-based byte-plane width detection.
+// Replaces brute-force candidate set with sampled byte-match frequency to find
 // periodic byte repetitions, then validates top candidates via entropy.
 // Supports arbitrary widths up to max_width (default 64) without a predefined set.
 
@@ -16,17 +16,17 @@
 
 namespace bpd {
 
-// Phase 1: Sampled autocorrelation candidate detection.
+// Phase 1: Sampled byte-match frequency candidate detection.
 // Samples ~4096 positions and counts exact byte matches at each lag.
-// Returns up to top_k candidate widths sorted by autocorrelation strength.
-inline std::vector<uint32_t> detect_candidate_widths_acf(
+// Returns up to top_k candidate widths sorted by byte-match frequency.
+inline std::vector<uint32_t> detect_candidate_widths_bmf(
     const uint8_t* data, size_t len, uint32_t max_width = 64, size_t top_k = 5)
 {
     if (len < max_width + 1) return {};
 
     size_t sample_step = std::max(size_t(1), len / 4096);
 
-    // Compute autocorrelation for each lag
+    // Compute byte-match frequency for each lag
     std::vector<double> autocorr(max_width + 1, 0.0);
     uint32_t sample_count = 0;
 
@@ -46,7 +46,7 @@ inline std::vector<uint32_t> detect_candidate_widths_acf(
         autocorr[lag] /= sample_count;
     }
 
-    // Find peak autocorrelation
+    // Find peak byte-match frequency
     double max_corr = 0.0;
     for (uint32_t lag = 2; lag <= max_width; ++lag) {
         max_corr = std::max(max_corr, autocorr[lag]);
@@ -80,9 +80,9 @@ inline std::vector<uint32_t> detect_candidate_widths_acf(
     return candidates;
 }
 
-// Return the raw autocorrelation profile for analysis/plotting.
+// Return the raw byte-match frequency profile for analysis/plotting.
 // Returns vector of (lag, normalized_correlation) for lags 2..max_width.
-inline std::vector<std::pair<uint32_t, double>> autocorrelation_profile(
+inline std::vector<std::pair<uint32_t, double>> byte_match_profile(
     const uint8_t* data, size_t len, uint32_t max_width = 64)
 {
     std::vector<std::pair<uint32_t, double>> profile;
@@ -110,14 +110,14 @@ inline std::vector<std::pair<uint32_t, double>> autocorrelation_profile(
     return profile;
 }
 
-// Algorithm 2: Full autocorrelation-based width detection.
-// Phase 1: Sampled autocorrelation → top-5 candidate widths
+// Algorithm 2: Full byte-match-based width detection.
+// Phase 1: Sampled byte-match frequency → top-5 candidate widths
 // Phase 2: Add fallback widths {2, 4, 8}
 // Phase 3: Validate each candidate via entropy minimization (same as Algorithm 1)
 //
 // Returns w* > 0 if a width reduces average plane entropy by at least (1-tau),
 // 0 if no width passes the threshold.
-inline int detect_width_acf(const uint8_t* data, size_t len,
+inline int detect_width_bmf(const uint8_t* data, size_t len,
                             double tau = 0.80, uint32_t max_width = 64)
 {
     if (len < 32) return 0;
@@ -126,7 +126,7 @@ inline int detect_width_acf(const uint8_t* data, size_t len,
     if (base_entropy < 1.0) return 0;
 
     // Phase 1: Autocorrelation-based candidate detection
-    auto candidates = detect_candidate_widths_acf(data, len, max_width);
+    auto candidates = detect_candidate_widths_bmf(data, len, max_width);
 
     // Phase 2: Ensure standard widths are always tested as fallback
     for (uint32_t w : {2u, 4u, 8u}) {
