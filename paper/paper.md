@@ -139,11 +139,11 @@ return w*
 
 **Byte-match frequency** $\text{bmf}(\ell) = P(B[i] = B[i + \ell])$ measures the fraction of sampled positions where the byte value at position $i$ equals the byte value at position $i + \ell$. This is not standard autocorrelation $R(\ell) = \sum (x_i - \bar{x})(x_{i+\ell} - \bar{x})$, but a simpler indicator-function metric that is sufficient for period detection in byte-valued data: structured data with record width $w$ produces byte-match peaks at lag $w$ and its multiples $2w, 3w, \ldots$ because byte position $p$ repeats every $w$ bytes. By sampling ~4096 positions (rather than all $n$), the byte-match phase costs $O(L \cdot 4096) \approx 260K$ comparisons, negligible relative to the $O(n)$ shuffle cost per candidate (Section 7.5).
 
-**Note on threshold behavior.** Algorithm 1 uses a cascading threshold: $H_{\text{best}}$ is updated as better widths are found, so later candidates must beat $\tau \times H_{\text{best\_so\_far}}$, making the result order-dependent within the candidate set. Algorithm 2 compares all candidates against the fixed baseline $\tau \times H_{\text{base}}$, making it order-independent. On our five datasets the results are identical; in general the cascading threshold is stricter and could produce different results for marginal cases.
+**Note on threshold behavior.** Algorithm 1 uses a cascading threshold: $H_{\text{best}}$ is updated as better widths are found, so later candidates must beat $\tau \times H_{\text{best\_so\_far}}$, making the result order-dependent within the candidate set. Algorithm 2 compares all candidates against the fixed baseline $\tau \times H_{\text{base}}$, making it order-independent. On four of five datasets the results are identical; NASDAQ ITCH differs because Algorithm 2 discovers width=36 (outside Algorithm 1's candidate set). In general the cascading threshold is stricter and could produce different results for marginal cases.
 
 **Harmonic suppression** (Phase 5) addresses an artifact where harmonics of the true period (e.g., $2w$, $3w$) may also pass entropy validation, because decomposition at width $kw$ produces $kw$ planes that are still partially aligned with the underlying $w$-byte structure. The byte-match frequency at the fundamental $w$ and its harmonics is theoretically equal for perfectly periodic data; empirical differences arise from sampling noise or the peak detection threshold. Regardless, preferring the smallest passing divisor selects the fundamental period.
 
-**Advantages over Algorithm 1:** (1) Supports arbitrary widths up to $L$ without a predefined candidate set — width 36 (NASDAQ ITCH), width 28 (SAO catalog), width 24 (Intel Lab), and any non-standard width are discovered automatically. (2) Evaluates only 5–8 candidates per block instead of 15, reducing the number of shuffle+entropy operations. (3) The fallback set $\{2, 4, 8\}$ ensures common power-of-two widths are always tested even when byte-match sampling is insufficient (e.g., on short blocks).
+**Advantages over Algorithm 1:** (1) Supports arbitrary widths up to $L$ without a predefined candidate set — width 36 (NASDAQ ITCH), width 28 (SAO catalog), width 24 (Intel Lab), and any non-standard width are discovered automatically. For widths present in the fallback set (2, 4, 8), the byte-match phase may not produce a peak at the correct lag; the fallback ensures these common widths are always tested. The byte-match mechanism's primary contribution is discovering non-standard widths. (2) Evaluates only 5–8 candidates per block instead of 15, reducing the number of shuffle+entropy operations. (3) The fallback set $\{2, 4, 8\}$ ensures common power-of-two widths are always tested even when byte-match sampling is insufficient (e.g., on short blocks).
 
 ### 3.3 Correctness Analysis
 
@@ -172,13 +172,13 @@ The threshold $\tau = 0.80$ was chosen to balance detection sensitivity against 
 
 | $\tau$ | sensor (w=8) | intel (w=24) | mr (w=2) | sao (w=28) | dickens (w=0) | NASDAQ | Correct (det.) |
 |--------|-------------|-------------|---------|-----------|-------------|--------|---------------|
-| 0.65 | 8 ✓ | 24 ✓ | — ✓ | — ✗ | — ✓ | — | 5/6 |
-| 0.70 | 8 ✓ | 12 ✗ | — ✓ | — ✗ | — ✓ | — | 4/6 |
-| 0.75 | 16 ✗ | 24 ✓ | — ✓ | 28 ✓ | — ✓ | 12 | 5/6 |
-| **0.80** | **8 ✓** | **24 ✓** | **2 ✓** | **28 ✓** | **— ✓** | **12** | **5/6** |
-| 0.85 | 8 ✓ | 24 ✓ | 20 ✗ | 14 ✗ | — ✓ | 12 | 3/6 |
-| 0.90 | 8 ✓ | 24 ✓ | 2 ✓ | 28 ✓ | — ✓ | 12 | 5/6 |
-| 0.95 | 32 ✗ | 24 ✓ | 2 ✓ | 28 ✓ | — ✓ | 12 | 4/6 |
+| 0.65 | 8 ✓ | 24 ✓ | — ✓ | — ✗ | — ✓ | — | 4/5 |
+| 0.70 | 8 ✓ | 12 ✗ | — ✓ | — ✗ | — ✓ | — | 3/5 |
+| 0.75 | 16 ✗ | 24 ✓ | — ✓ | 28 ✓ | — ✓ | 12 | 4/5 |
+| **0.80** | **8 ✓** | **24 ✓** | **2 ✓** | **28 ✓** | **— ✓** | **12** | **5/5** |
+| 0.85 | 8 ✓ | 24 ✓ | 20 ✗ | 14 ✗ | — ✓ | 12 | 3/5 |
+| 0.90 | 8 ✓ | 24 ✓ | 2 ✓ | 28 ✓ | — ✓ | 12 | 5/5 |
+| 0.95 | 32 ✗ | 24 ✓ | 2 ✓ | 28 ✓ | — ✓ | 12 | 4/5 |
 
 NASDAQ is excluded from the "Correct" count because its detection-stage behavior requires special interpretation: Algorithm 1 detects width=12 (a divisor of the true width 36) at all thresholds $\tau \ge 0.75$, with 22–24% entropy reduction. This is not a false positive — the 36-byte records genuinely contain 12-byte periodic sub-structure — but it does not produce a compression improvement ($G = 1.00\times$). Algorithm 2 detects the true width=36 with 48% entropy reduction, also without compression improvement.
 
@@ -210,7 +210,7 @@ We measured $G$ on five datasets with distinct structural properties, using 64 K
 | SAO Star Catalog (Silesia `sao`) | 28B astronomical records | 28 | 1.25:1 | 1.26:1 | **1.01×** |
 | NASDAQ ITCH Add Orders (real) | 36B: 6B nanos ts + 8B order ref + 8B stock + ... | 36 | 2.80:1 | 2.80:1 | **1.00×** |
 
-*Algorithm 1 detects width=12 (a divisor of 36 present in the candidate set) with 23% entropy reduction. Algorithm 2 detects the true width=36 with 48% entropy reduction. In both cases, the per-block compression comparison rejects shuffle because shuffle+delta+ZSTD does not produce shorter output than plain ZSTD on any block.
+*Algorithm 1 detects width=12 (a divisor of 36 present in the candidate set) with 23% entropy reduction. Algorithm 2 detects the true width=36 with 48% entropy reduction. In both cases, the per-block compression comparison rejects shuffle because shuffle+delta+ZSTD does not produce shorter output than plain ZSTD on any block. The $R_{\text{shuffle}}$ column shows the result at w=36 (Algorithm 2); the result at w=12 (Algorithm 1) is identical (2.80:1).
 
 ### 4.3 The Entropy Gradient Explanation
 
@@ -236,7 +236,7 @@ Our five data points (Figure 1) suggest that the universality gap $G$ is governe
 
 The mechanism is not simply that decomposition reduces total entropy — it cannot, since it is an information-preserving permutation. Rather, decomposition converts the problem from coding a single high-entropy interleaved stream into coding multiple streams of varying entropy. LZ-family compressors exploit low-entropy streams far more efficiently than they exploit low-entropy *subsequences* embedded within a high-entropy stream, because their match-finding operates on contiguous windows.
 
-**Figure 1:** Universality gap $G$ versus absolute MSB entropy for all five datasets: sensor_log (0.00, 40.8), Intel Lab (0.17, 1.19), MRI (0.47, 1.02), SAO (3.19, 1.01), NASDAQ (6.0, 1.00). The gap approaches 1.0 as MSB entropy increases, confirming that near-zero MSB entropy is the primary driver of large gaps. See `figures/universality_gap.pdf`.
+**Figure 1:** Universality gap $G$ versus absolute MSB entropy for all five datasets: sensor_log (0.00, 40.8), Intel Lab (0.17, 1.19), MRI (0.47, 1.02), SAO (3.19, 1.01), NASDAQ (6.0, 1.00). The gap decreases toward 1.0 as MSB entropy increases, confirming that near-zero MSB entropy is the primary driver of large gaps. See `figures/universality_gap.pdf`.
 
 Tightening this qualitative relationship into a formal bound remains an open problem. It requires bounding the gap between ZSTD's effective per-byte coding rate on periodically interleaved data (which approaches $H_0$ of the mixed stream) and the sum of per-plane coding rates after decomposition. The framework of Ferragina et al. [9] provides the necessary LZ optimality bounds, but connecting these to the specific structure of byte-interleaved data requires further analysis.
 
@@ -295,7 +295,7 @@ Per-plane entropy profile (8-byte struct, width=8, averaged over 16 blocks of 64
 | 6 | humidity LSB | 1.717 | 0.013 | Sparse |
 | 7 | humidity MSB | 0.000 | 0.002 | Constant |
 
-Four planes (0, 3, 5, 7) are constant-class after delta encoding. Three planes (2, 4, 6) are sparse. One plane (1) is sparse but near the class boundary — the carry-propagation byte, whose bimodal distribution (90.6% `0x04`, 9.4% `0x03`) is determined by the LSB overflow frequency: $(1000 \bmod 256) / 256 = 232/256 \approx 0.906$. Its entropy of 0.451 bits falls within the sparse range (0.01–0.50).
+Four planes (0, 3, 5, 7) are constant-class after delta encoding. Four planes (1, 2, 4, 6) are sparse, including the carry-propagation plane at position 1 (entropy 0.451, near the class boundary). The carry plane's bimodal distribution (90.6% `0x04`, 9.4% `0x03`) is determined by the LSB overflow frequency: $(1000 \bmod 256) / 256 = 232/256 \approx 0.906$.
 
 ---
 
@@ -323,7 +323,7 @@ ZSTD level 3 is used throughout. ZSTD context is reused across blocks to amortiz
 
 For each dataset: (1) compute block-level Shannon entropy, (2) run width detection algorithm with candidate set $W = \{2,3,4,5,6,7,8,10,12,14,16,20,24,28,32\}$, (3) at the detected width, compute per-plane entropy before and after delta encoding, (4) compress with shuffle+delta+ZSTD and compare against plain ZSTD on the same block, (5) compute the universality gap $G$.
 
-All width detection results in Sections 7.1–7.4 use Algorithm 1. Algorithm 2 produces identical width selections on all five datasets (verified); Section 7.1 includes Algorithm 2's byte-match profiles for validation.
+All width detection results in Sections 7.1–7.4 use Algorithm 1. Algorithm 2 produces identical width selections on four of five datasets; on NASDAQ ITCH, Algorithm 2 detects the true width=36 (outside Algorithm 1's candidate set) while Algorithm 1 detects w=12. In both cases the per-block compression comparison rejects the shuffle result. Section 7.1 includes Algorithm 2's byte-match profiles for validation.
 
 All entropy values are order-0 Shannon entropy of the byte frequency distribution, measured in bits per byte (range [0, 8]). Width detection (Algorithms 1 and 2) evaluates raw (pre-delta) per-plane entropy. The three-class partition analysis (Section 5) uses post-delta entropy.
 
@@ -378,7 +378,7 @@ The algorithm produces **zero false positives** on the entire Silesia Corpus tex
 *mr: detected on ~30% of blocks; remaining blocks return $w^* = 0$.
 †NASDAQ ITCH: Algorithm 2 detects w=36 (true record width), but the per-block compression comparison rejects it ($G = 1.00\times$). Algorithm 1 detects w=12 (a divisor of 36, present in the candidate set), also rejected by the compression comparison. The strong byte-match peak at lag=36 (0.843) confirms that Algorithm 2 can identify record widths outside Algorithm 1's candidate set.
 
-For sensor_log, the dominant byte-match peaks appear at lags 3, 11, 19, 27... (positions of the constant MSB byte within 8-byte records), not directly at lag=8. The entropy validation phase correctly selects width=8 from the candidates.
+For sensor_log, the byte-match phase produces weak peaks at lags 3, 11, 19, 27 (period-8 offsets where specific byte positions happen to share values); the correct width=8 is recovered via the fallback set and entropy validation, not the byte-match mechanism.
 
 ### 7.2 Universality Gap Measurements
 
@@ -410,7 +410,6 @@ On the Silesia Corpus (12 files, 202 MB total), the BPD implementation achieves 
 |------|------|---------------------|------------------------|--------|---------------|
 | mr | MRI | 2.76:1 | 2.72:1 | **+1.5%** | 2 |
 | sao | Star catalog | 1.25:1 | 1.25:1 | 0%* | 28 |
-| x-ray | DICOM | 1.30:1 | 1.30:1 | 0% | 2 |
 
 *SAO's aggregate ratio ties ZSTD-block because per-block strategy selection chooses plain ZSTD on blocks where shuffle doesn't help. The per-block shuffle improvement averages ~2.4% on blocks where it activates, but not all 111 blocks benefit, so the aggregate is a tie.
 
@@ -430,7 +429,7 @@ Width detection adds computational cost to the compression path only; decompress
 
 Each candidate width requires one shuffle operation ($O(n)$) and one entropy computation ($O(n)$), for a total cost of $O(|W| \cdot n)$ per block. On 64 KB blocks, this amounts to ~100–200 μs per candidate width. Algorithm 2 adds a sampled byte-match phase ($O(L \cdot 4096) \approx 260K$ comparisons, negligible versus shuffle cost) but reduces the number of validated candidates from 15 to typically 5–8, yielding a net reduction in overhead.
 
-Algorithm 2 removes the fixed candidate set limitation: it detects arbitrary widths up to $L = 64$ without a predefined set, which means widths like 28 (SAO catalog) and 24 (Intel Lab) are discovered automatically rather than requiring manual inclusion. Both algorithms produce identical width detection results on all tested datasets (Section 7.1).
+Algorithm 2 removes the fixed candidate set limitation: it detects arbitrary widths up to $L = 64$ without a predefined set, which means widths like 28 (SAO catalog) and 24 (Intel Lab) are discovered automatically rather than requiring manual inclusion. Both algorithms produce identical width detection results on four of five tested datasets; on NASDAQ ITCH, Algorithm 2 detects the true width=36 while Algorithm 1 detects w=12, with both rejected by the per-block compression comparison (Section 7.1).
 
 ---
 
@@ -451,7 +450,7 @@ For highly regular data (sensor_log), the gap increases with block size because 
 
 ### 8.1 Limitations
 
-**Width detection has a bounded search range.** Algorithm 2 supports arbitrary widths up to the maximum lag $L = 64$. Records wider than 64 bytes would require increasing $L$, which linearly increases the byte-match phase cost. The $L = 64$ bound does not cover the 90-byte enterprise packet captures [19] cited as future targets; increasing $L$ to 128 would address this with proportional cost increase. In practice, the vast majority of binary record formats use widths under 64 bytes.
+**Width detection has a bounded search range.** Algorithm 2 supports arbitrary widths up to the maximum lag $L = 64$. Records wider than 64 bytes would require increasing $L$, which linearly increases the byte-match phase cost. The $L = 64$ bound does not cover the 90-byte enterprise packet captures [19] cited as future targets; increasing $L$ to 128 would address this with proportional cost increase in the byte-match phase. Note that reliable detection at lag=90 on 64 KB blocks yields only ~4090 samples (barely sufficient), so larger record widths may also require larger blocks. In practice, the vast majority of binary record formats use widths under 64 bytes.
 
 **The universality gap is data-dependent.** Our five-point characterization spans from no improvement (NASDAQ ITCH, $G = 1.00$) to 40.8× (synthetic sensor telemetry). Promising future targets for the 2×–10× range include USGS LiDAR LAS point clouds (30-byte records) [18] and enterprise packet captures (90-byte records) [19]. Standard compression benchmarks (Canterbury, LTCB, lzbench) lack structured binary data entirely — developing a standard binary benchmark corpus is a community need.
 
