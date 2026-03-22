@@ -147,7 +147,7 @@ The key insight is that structured binary data with record width $w$ produces au
 
 **When the algorithm succeeds:** If the data consists of repeated w-byte records where different byte positions have different entropy characteristics (e.g., MSBs are constant, LSBs vary), the correct width w produces planes with the lowest average entropy. Any incorrect width $w' \ne w$ (and $w' \nmid w$) mixes bytes from different positions, averaging their entropy upward.
 
-**When the algorithm fails:** (1) If all byte positions within the record have similar entropy (e.g., all bytes of a uniformly distributed 32-bit float), no width reduces average entropy. (2) If the record width is not in the candidate set $W$, it will be missed. (3) If the block contains mixed record types, the dominant type determines the detected width. (4) Variable-length serialization formats (protobuf, MessagePack, CBOR) are correctly rejected because no fixed period produces consistent entropy reduction.
+**When the algorithm fails:** (1) If all byte positions within the record have similar entropy (e.g., all bytes of a uniformly distributed 32-bit float), no width reduces average entropy. (2) If the record width is not in the candidate set $W$, it will be missed (Algorithm 1 only; Algorithm 2 detects arbitrary widths up to $L$). (3) If the block contains mixed record types, the dominant type determines the detected width. (4) Variable-length serialization formats (protobuf, MessagePack, CBOR) are correctly rejected because no fixed period produces consistent entropy reduction.
 
 ### 3.4 Validation
 
