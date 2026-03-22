@@ -63,10 +63,10 @@ int main(int argc, char* argv[]) {
         double block_entropy = bpd::shannon_entropy(block, block_size);
 
         int w1 = bpd::detect_width(block, block_size);
-        int w2 = bpd::detect_width_acf(block, block_size);
+        int w2 = bpd::detect_width_bmf(block, block_size);
 
         // Count candidates from autocorrelation (before fallback)
-        auto candidates = bpd::detect_candidate_widths_acf(block, block_size);
+        auto candidates = bpd::detect_candidate_widths_bmf(block, block_size);
         // +fallback widths not already in candidates
         size_t total_cands = candidates.size();
         for (uint32_t w : {2u, 4u, 8u}) {
@@ -96,9 +96,9 @@ int main(int argc, char* argv[]) {
         << " blocks (" << (100.0 * match_count / total_blocks) << "%)\n";
     std::cout << "Algorithm 1 evaluates 15 fixed widths per block\n";
 
-    // Autocorrelation profile for block 0
-    std::cout << "\n--- Autocorrelation profile (block 0) ---\n";
-    auto profile = bpd::autocorrelation_profile(data.data(), block_size);
+    // Byte-match frequency profile for block 0
+    std::cout << "\n--- Byte-match frequency profile (block 0) ---\n";
+    auto profile = bpd::byte_match_profile(data.data(), block_size);
 
     if (profile.empty()) {
         std::cout << "(no data)\n";

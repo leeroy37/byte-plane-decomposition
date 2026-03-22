@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
         total_plain += plain_size;
 
         // Shuffle + delta + ZSTD at detected width
-        int width = use_acf ? bpd::detect_width_acf(block, block_size)
+        int width = use_acf ? bpd::detect_width_bmf(block, block_size)
                             : bpd::detect_width(block, block_size);
         if (width > 0) {
             size_t num_elem = block_size / width;

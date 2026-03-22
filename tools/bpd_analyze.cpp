@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
         double block_entropy = bpd::shannon_entropy(block, block_size);
 
         int width = (force_width > 0) ? force_width
-                    : use_acf ? bpd::detect_width_acf(block, block_size)
+                    : use_acf ? bpd::detect_width_bmf(block, block_size)
                               : bpd::detect_width(block, block_size);
 
         if (width > 0 && block_size >= static_cast<size_t>(width) * 4) {
@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
 
     // Per-plane detail for first block
     int w = (force_width > 0) ? force_width
-             : use_acf ? bpd::detect_width_acf(data.data(), block_size)
+             : use_acf ? bpd::detect_width_bmf(data.data(), block_size)
                        : bpd::detect_width(data.data(), block_size);
     if (w > 0 && block_size >= static_cast<size_t>(w) * 4) {
         size_t num_elem = block_size / w;
