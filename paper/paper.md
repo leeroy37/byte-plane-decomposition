@@ -4,7 +4,7 @@
 
 ## Abstract
 
-Byte-plane decomposition — reordering serialized multi-byte data by byte position before compression — is widely deployed in scientific data pipelines (HDF5, Blosc, Apache Parquet) but requires the user or application schema to specify the field width. We present two **schema-free algorithms for automatically detecting the optimal decomposition width** by minimizing average per-plane Shannon entropy: one over a fixed candidate set, and one using sampled byte-match frequency to detect arbitrary widths without a predefined set. The algorithms are validated on data with record widths from 2 to 36 bytes, including the SAO Star Catalog where width=28 is correctly identified while all power-of-two widths fail. We additionally provide the first **systematic characterization of the universality gap** between structure-aware and structure-blind lossless compression. Across five datasets — synthetic sensor telemetry, real-world IoT sensors, MRI medical imaging, astronomical catalog data, and financial order book data — the gap ranges from 1.00× to 40.8× and correlates with the MSB-to-LSB entropy gradient and absolute MSB entropy within multi-byte fields. We characterize the three-class byte-plane partition (constant, sparse, medium-entropy) that emerges after decomposition and delta encoding, and show it follows from the autoregressive structure of typical binary field sequences. The synthetic sensor telemetry result (40.8× gap) represents an upper bound on structured data with near-constant MSBs; the real-world results (1.00×–1.19×) show the range for data with higher per-field entropy. On the Intel Berkeley Lab sensor dataset (2.2 million real IoT readings), the algorithm auto-detects width=24 and achieves an 18.8% compression improvement over ZSTD. On NASDAQ ITCH financial data (3.7 million order records), Algorithm 2 correctly detects the 36-byte record width, but the per-block compression comparison confirms that decomposition cannot help (gap = 1.00×) — demonstrating that entropy reduction alone does not guarantee compression improvement. All results are validated on the BPD implementation, a block-independent ZSTD-backed compression platform implementing schema-free width detection and per-block strategy selection.
+Byte-plane decomposition — reordering serialized multi-byte data by byte position before compression — is widely deployed in scientific data pipelines (HDF5, Blosc, Apache Parquet) but requires the user or application schema to specify the field width. We present two **schema-free algorithms for automatically detecting the optimal decomposition width** by minimizing average per-plane Shannon entropy: one over a fixed candidate set, and one using sampled byte-match frequency to detect arbitrary widths without a predefined set. The algorithms are validated on data with record widths from 2 to 36 bytes, including the SAO Star Catalog where width=28 is correctly identified while all power-of-two widths fail. We additionally provide the first **systematic characterization of the universality gap** between structure-aware and structure-blind lossless compression. Across five datasets — synthetic sensor telemetry, real-world IoT sensors, MRI medical imaging, astronomical catalog data, and financial order book data — the gap ranges from 1.00× to 40.8× and correlates with the MSB-to-LSB entropy gradient and absolute MSB entropy within multi-byte fields. We characterize the three-class byte-plane partition (constant, sparse, medium-entropy) that emerges after decomposition and delta encoding, and show it follows from the autoregressive structure of typical binary field sequences. The synthetic sensor telemetry result (40.8× gap) represents an upper bound on structured data with near-constant MSBs; the real-world results (1.00×–1.19×) show the range for data with higher per-field entropy. On the Intel Berkeley Lab sensor dataset (2.2 million real IoT readings), the algorithm auto-detects width=24 and achieves an 19% compression improvement over ZSTD. On NASDAQ ITCH financial data (3.7 million order records), Algorithm 2 correctly detects the 36-byte record width, but the per-block compression comparison confirms that decomposition cannot help (gap = 1.00×) — demonstrating that entropy reduction alone does not guarantee compression improvement. All results are validated on the BPD implementation, a block-independent ZSTD-backed compression platform implementing schema-free width detection and per-block strategy selection.
 
 ---
 
@@ -153,18 +153,18 @@ return w*
 
 ### 3.4 Validation
 
-**SAO Star Catalog (28-byte records):** The algorithm correctly identifies w* = 28 from the candidate set. All smaller widths (2, 4, 8, 14, 16) fail the 20% threshold — they produce average plane entropies of 6.19–7.75 bits versus the baseline of 7.40 bits. Width 28 produces average plane entropy of 5.39 bits, a 27% reduction. Width 56 (2 × 28) also passes, confirming the periodic structure.
+**SAO Star Catalog (28-byte records):** The algorithm correctly identifies w* = 28 from the candidate set. All smaller widths (2, 4, 8, 14, 16) fail the 20% threshold — they produce average plane entropies of 6.19–7.17 bits, reductions of only 3–16% versus the baseline of 7.40 bits. Width 28 produces average plane entropy of 5.39 bits, a 27% reduction. Width 56 (2 × 28) also passes, confirming the periodic structure.
 
 | Width | Avg Plane Entropy | Entropy Reduction | Accepted |
 |-------|------------------|-------------------|----------|
-| 2 | 7.75 | -4.7% (worse) | No |
-| 4 | 7.70 | -4.1% (worse) | No |
-| 8 | 7.58 | -2.4% (worse) | No |
-| 14 | 6.19 | 16.4% | No (< 20%) |
-| **28** | **5.39** | **27.2%** | **Yes** |
-| 32 | 7.62 | -3.0% (worse) | No |
+| 2 | 7.17 | 3% | No (< 20%) |
+| 4 | 6.82 | 8% | No (< 20%) |
+| 8 | 6.80 | 8% | No (< 20%) |
+| 14 | 6.19 | 16% | No (< 20%) |
+| **28** | **5.39** | **27%** | **Yes** |
+| 32 | 6.73 | 9% | No (< 20%) |
 
-**Sensor telemetry (8-byte records):** The algorithm identifies w* = 8. Average plane entropy drops from 5.5 bits to 2.9 bits (47% reduction), well above the 20% threshold.
+**Sensor telemetry (8-byte records):** The algorithm identifies w* = 8. Average plane entropy drops from 5.4 bits to 2.8 bits (49% reduction), well above the 20% threshold.
 
 ### 3.5 Threshold Sensitivity
 
@@ -205,12 +205,12 @@ We measured $G$ on five datasets with distinct structural properties, using 64 K
 | Dataset | Format | Width | $R_{\text{ZSTD}}$ | $R_{\text{shuffle}}$ | $G$ |
 |---------|--------|-------|-------------------|---------------------|-----|
 | Sensor telemetry (synth.) | 8B: uint32 ts + int16 temp + int16 hum | 8 | 4.25:1 | 173.5:1 | **40.8×** |
-| Intel Lab sensors (real) | 24B: uint32 epoch + uint32 moteid + 4×float32 | 24 | 3.57:1 | 4.24:1 | **1.19×** |
-| MRI brain scan (Silesia `mr`) | 16-bit DICOM pixels | 2 | 2.72:1 | 2.75:1 | **1.01×** |
-| SAO Star Catalog (Silesia `sao`) | 28B astronomical records | 28 | 1.23:1 | 1.26:1 | **1.02×** |
-| NASDAQ ITCH Add Orders (real) | 36B: 6B nanos ts + 8B order ref + 8B stock + ... | 36* | 2.80:1 | 2.79:1 | **1.00×** |
+| Intel Lab sensors (real) | 24B: uint32 epoch + uint32 moteid + 4×float32 | 24 | 3.58:1 | 4.26:1 | **1.19×** |
+| MRI brain scan (Silesia `mr`) | 16-bit DICOM pixels | 2 | 2.72:1 | 2.76:1 | **1.02×** |
+| SAO Star Catalog (Silesia `sao`) | 28B astronomical records | 28 | 1.25:1 | 1.26:1 | **1.01×** |
+| NASDAQ ITCH Add Orders (real) | 36B: 6B nanos ts + 8B order ref + 8B stock + ... | 36 | 2.80:1 | 2.80:1 | **1.00×** |
 
-*Width=36 tested manually (outside the standard candidate set). The algorithm with the standard candidate set correctly returns $w^* = 0$ (no decomposition), since no candidate width achieves the 20% entropy reduction threshold. Even at the correct width, entropy reduction is <1%.
+*Algorithm 1 detects width=12 (a divisor of 36 present in the candidate set) with 23% entropy reduction. Algorithm 2 detects the true width=36 with 48% entropy reduction. In both cases, the per-block compression comparison rejects shuffle because shuffle+delta+ZSTD does not produce shorter output than plain ZSTD on any block.
 
 ### 4.3 The Entropy Gradient Explanation
 
@@ -220,8 +220,8 @@ The universality gap correlates with the **MSB-to-LSB entropy gradient** — the
 |---------|------------|-------------|----------|---------|
 | Sensor telemetry (synth.) | 0.00 bits | 5.00 bits | 5.00 | 40.8× |
 | Intel Lab sensors (real) | 0.17 bits | 6.07 bits | 5.90 | 1.19× |
-| MRI (Silesia `mr`) | 0.47 bits | 5.05 bits | 4.58 | 1.01× |
-| SAO (Silesia `sao`) | 3.19 bits | 6.08 bits | 2.89 | 1.02× |
+| MRI (Silesia `mr`) | 0.47 bits | 5.05 bits | 4.58 | 1.02× |
+| SAO (Silesia `sao`) | 3.19 bits | 6.08 bits | 2.89 | 1.01× |
 | NASDAQ ITCH (real) | ~6.0 bits | ~7.5 bits | ~1.5 | 1.00× |
 
 **Observation.** The gradient alone does not predict the gap: synthetic sensor data and Intel Lab sensors have similar gradients (5.00 vs 5.90) but differ by 34× in gap (40.8× vs 1.19×). The critical additional factor is the **absolute MSB entropy**. When MSBs are exactly 0.00 bits (synthetic: constant-increment timestamps), the separated MSB planes compress to nearly zero bytes. When MSBs are 0.17 bits (Intel Lab: variable epochs, 54 sensor IDs), the separated planes still have non-trivial content. Both the gradient and the absolute MSB entropy are necessary predictors of the gap.
@@ -236,7 +236,7 @@ Our five data points (Figure 1) suggest that the universality gap $G$ is governe
 
 The mechanism is not simply that decomposition reduces total entropy — it cannot, since it is an information-preserving permutation. Rather, decomposition converts the problem from coding a single high-entropy interleaved stream into coding multiple streams of varying entropy. LZ-family compressors exploit low-entropy streams far more efficiently than they exploit low-entropy *subsequences* embedded within a high-entropy stream, because their match-finding operates on contiguous windows.
 
-**Figure 1:** Universality gap $G$ versus absolute MSB entropy for all five datasets: sensor_log (0.00, 40.8), Intel Lab (0.17, 1.19), MRI (0.47, 1.01), SAO (3.19, 1.02), NASDAQ (6.0, 1.00). The gap approaches 1.0 as MSB entropy increases, confirming that near-zero MSB entropy is the primary driver of large gaps. See `figures/universality_gap.pdf`.
+**Figure 1:** Universality gap $G$ versus absolute MSB entropy for all five datasets: sensor_log (0.00, 40.8), Intel Lab (0.17, 1.19), MRI (0.47, 1.02), SAO (3.19, 1.01), NASDAQ (6.0, 1.00). The gap approaches 1.0 as MSB entropy increases, confirming that near-zero MSB entropy is the primary driver of large gaps. See `figures/universality_gap.pdf`.
 
 Tightening this qualitative relationship into a formal bound remains an open problem. It requires bounding the gap between ZSTD's effective per-byte coding rate on periodically interleaved data (which approaches $H_0$ of the mixed stream) and the sum of per-plane coding rates after decomposition. The framework of Ferragina et al. [9] provides the necessary LZ optimality bounds, but connecting these to the specific structure of byte-interleaved data requires further analysis.
 
@@ -339,8 +339,8 @@ The algorithm correctly identifies the struct width for all four structured data
 
 | Dataset | True Width | Detected Width | Entropy Reduction | Detection Time |
 |---------|-----------|---------------|-------------------|---------------|
-| sensor_log | 8 | 8 | 47% (5.5 → 2.9 bits) | ~100 μs/block |
-| intel_lab | 24 | 24 | 31% (5.1 → 3.5 bits) | ~150 μs/block |
+| sensor_log | 8 | 8 | 49% (5.4 → 2.8 bits) | ~100 μs/block |
+| intel_lab | 24 | 24 | 50% (6.1 → 3.0 bits) | ~150 μs/block |
 | mr | 2 | 2 | 20–22% on activating blocks | ~100 μs/block |
 | sao | 28 | 28 | 27% (7.4 → 5.4 bits) | ~200 μs/block |
 | NASDAQ ITCH | 36 | 12 (Alg 1) / 36 (Alg 2) | 23% at w=12, 48% at w=36 | ~200 μs/block |
@@ -385,10 +385,10 @@ For sensor_log, the dominant byte-match peaks appear at lags 3, 11, 19, 27... (p
 | Dataset | Block Entropy | $R_{\text{ZSTD}}$ | $R_{\text{shuffle+delta+ZSTD}}$ | Gap $G$ | MSB Entropy | LSB Entropy | Gradient |
 |---------|-------------|-------------------|--------------------------------|---------|-------------|-------------|----------|
 | sensor_log (synth.) | 5.5 bits | 4.25:1 | 173.5:1 | 40.8× | 0.00 | 5.00 | 5.00 |
-| intel_lab (real) | 5.1 bits | 3.57:1 | 4.24:1 | 1.19× | 0.17 | 6.07 | 5.90 |
-| mr (real) | 2.7 bits | 2.72:1 | 2.75:1 | 1.01× | 0.47 | 5.05 | 4.58 |
-| sao (real) | 7.4 bits | 1.23:1 | 1.26:1 | 1.02× | 3.19 | 6.08 | 2.89 |
-| NASDAQ ITCH (real) | 6.1 bits | 2.80:1 | 2.79:1 | 1.00× | ~6.0 | ~7.5 | ~1.5 |
+| intel_lab (real) | 6.1 bits | 3.58:1 | 4.26:1 | 1.19× | 0.17 | 6.07 | 5.90 |
+| mr (real) | 2.7 bits | 2.72:1 | 2.76:1 | 1.02× | 0.47 | 5.05 | 4.58 |
+| sao (real) | 7.4 bits | 1.25:1 | 1.26:1 | 1.01× | 3.19 | 6.08 | 2.89 |
+| NASDAQ ITCH (real) | 5.3 bits | 2.80:1 | 2.80:1 | 1.00× | ~6.0 | ~7.5 | ~1.5 |
 
 The gap factor $G$ correlates with the MSB-to-LSB entropy gradient when controlling for absolute MSB entropy (Section 4.4). The relationship is not monotonic in the gradient alone: Intel Lab sensors (gradient 5.90, $G = 1.19$) have a larger gradient than synthetic sensor data (gradient 5.00, $G = 40.8$), but a smaller gap — because their MSB entropy (0.17 bits) is nonzero. The 40.8× gap is measured on synthetic telemetry with near-ideal structure; the real-world results (1.00×–1.19×) show the range.
 
@@ -416,7 +416,7 @@ On the Silesia Corpus (12 files, 202 MB total), the BPD implementation achieves 
 
 On text files (dickens 2.42:1, webster 3.02:1, reymont 3.07:1), the BPD implementation ties ZSTD within 0.5% — width detection correctly returns $w^* = 0$ and the data passes through to plain ZSTD. The aggregate 2.90:1 includes these files where width detection does nothing, demonstrating that the algorithm adds no regression on non-structured data.
 
-On the Intel Berkeley Lab real-world sensor dataset [16], the BPD implementation achieves 4.24:1 versus ZSTD per-block at 3.57:1 (**+18.8%** improvement, universality gap $G = 1.19$). The automatically detected width of 24 matches the 24-byte record structure.
+On the Intel Berkeley Lab real-world sensor dataset [16], the BPD implementation achieves 4.26:1 versus ZSTD per-block at 3.58:1 (**+19.0%** improvement, universality gap $G = 1.19$). The automatically detected width of 24 matches the 24-byte record structure.
 
 ### 7.5 Computational Overhead
 

@@ -13,8 +13,8 @@ import numpy as np
 datasets = [
     (0.00, 40.8,  "Sensor telemetry\n(synthetic)"),
     (0.17,  1.19, "Intel Lab\n(real IoT)"),
-    (0.47,  1.01, "MRI\n(Silesia)"),
-    (3.19,  1.02, "SAO\n(Silesia)"),
+    (0.47,  1.02, "MRI\n(Silesia)"),
+    (3.19,  1.01, "SAO\n(Silesia)"),
     (6.0,   1.00, "NASDAQ ITCH\n(real financial)"),
 ]
 
