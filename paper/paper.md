@@ -20,6 +20,8 @@ We make two contributions:
 
 2. **An empirical characterization of the universality gap** between structure-aware (decomposition + ZSTD) and structure-blind (plain ZSTD) compression across five datasets (one synthetic, four real-world), with a theoretical explanation based on the MSB-to-LSB entropy gradient within multi-byte fields.
 
+[^1]: Implementation and reproducibility scripts are available at <https://github.com/leeroy37/byte-plane-decomposition>.
+
 ---
 
 ## 2. Background
@@ -495,6 +497,12 @@ Our five-point empirical curve — with gaps ranging from 1.00× (NASDAQ financi
 These results suggest that the "price of universality" in lossless compression is not merely asymptotic overhead but can represent orders-of-magnitude performance gaps on highly regular structured binary data — gaps that simple, schema-free preprocessing can largely close. The schema-free nature of the width detection algorithm is its key practical advantage: unlike HDF5, Blosc, and Parquet, it requires no user configuration or data format knowledge, making it applicable as a transparent preprocessing layer in any compression pipeline.
 
 Future work includes validation on binary datasets with estimated gaps in the 2×–10× range (USGS LiDAR point clouds [18], enterprise packet captures [19]) and formal bounds on the universality gap using LZ optimality theory [9].
+
+---
+
+## Acknowledgments
+
+This work was developed with substantial assistance from AI tools. The author conceived the byte-plane decomposition approach, the auto-detection algorithm, and the universality gap framework. Claude (Anthropic) was used extensively for literature research, theoretical analysis, experimental design feedback, and iterative manuscript review. All experimental results were produced by the author's implementation and independently verified via automated reproducibility scripts.
 
 ---
 

@@ -8,13 +8,13 @@
 set -euo pipefail
 
 # --- Configuration ---
-BUILD="${BUILD:-build/Release}"
+BUILD="${BUILD:-build}"
 SENSOR_LOG="${SENSOR_LOG:-data/sensor_log.bin}"
-INTEL_LAB="${INTEL_LAB:-D:/Projects/testdata/intel_lab_sensors.bin}"
-MR="${MR:-D:/Projects/SilesiaCorpus/extracted/mr}"
-SAO="${SAO:-D:/Projects/SilesiaCorpus/extracted/sao}"
-NASDAQ="${NASDAQ:-D:/Projects/testdata/nasdaq/itch_add_orders.bin}"
-SILESIA="${SILESIA:-D:/Projects/SilesiaCorpus/extracted}"
+INTEL_LAB="${INTEL_LAB:-data/intel_lab.bin}"
+MR="${MR:-data/silesia/mr}"
+SAO="${SAO:-data/silesia/sao}"
+NASDAQ="${NASDAQ:-data/nasdaq_itch_adds.bin}"
+SILESIA="${SILESIA:-data/silesia}"
 
 PASS=0
 FAIL=0
