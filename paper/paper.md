@@ -500,6 +500,12 @@ Future work includes validation on binary datasets with estimated gaps in the 2Ã
 
 ---
 
+## Acknowledgments
+
+This work was developed with substantial assistance from AI tools. The author conceived the byte-plane decomposition approach, the auto-detection algorithm, and the universality gap framework. Claude (Anthropic) was used extensively for literature research, theoretical analysis, experimental design feedback, and iterative manuscript review. All experimental results were produced by the author's implementation and independently verified via automated reproducibility scripts.
+
+---
+
 ## References
 
 [1] Y. Collet, "Zstandard compression," RFC 8478, 2018.
