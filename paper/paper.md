@@ -20,6 +20,8 @@ We make two contributions:
 
 2. **An empirical characterization of the universality gap** between structure-aware (decomposition + ZSTD) and structure-blind (plain ZSTD) compression across five datasets (one synthetic, four real-world), with a theoretical explanation based on the MSB-to-LSB entropy gradient within multi-byte fields.
 
+[^1]: Implementation and reproducibility scripts are available at <https://github.com/leeroy37/byte-plane-decomposition>.
+
 ---
 
 ## 2. Background
