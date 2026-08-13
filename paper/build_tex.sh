@@ -98,7 +98,7 @@ GREEK_MATH = {"μ": r"$\mu$", "Δ": r"$\Delta$", "σ": r"$\sigma$",
 GREEK_ASCII = {"μ": "mu", "Δ": "Delta", "σ": "sigma",
                "τ": "tau", "Σ": "sum"}
 CHECK = {"✓": r"\ding{51}", "✗": r"\ding{55}"}
-CODE_ONLY = {"∈": " in ", "∪": " U ", "≥": ">="}
+CODE_ONLY = {"∈": "in", "∪": "U", "≥": ">="}
 
 lines = text.split("\n")
 in_code = False
@@ -137,6 +137,13 @@ cat > "$HEADER_TEX" << 'EOF'
 \usepackage{array}
 \usepackage{xurl}
 \setlength{\emergencystretch}{3em}
+\setlength{\tabcolsep}{3pt}
+% Allow line breaks after underscores (e.g. "sensor_log") so long
+% identifiers wrap instead of overflowing narrow table columns.
+\makeatletter
+\let\bpd@origunderscore\_
+\renewcommand{\_}{\bpd@origunderscore\allowbreak}
+\makeatother
 EOF
 
 pandoc "$BUILD_MD" \
@@ -149,6 +156,17 @@ pandoc "$BUILD_MD" \
   -V linkcolor=NavyBlue \
   -V urlcolor=NavyBlue \
   -V citecolor=NavyBlue
+
+# Give "NASDAQ" a LaTeX discretionary hyphen (\-) so it can wrap inside
+# the narrowest table columns (both data cells and header cells, which
+# pandoc emits as multi-line minipages with no single "NASDAQ ... &"
+# line to pattern-match) instead of overflowing into the next column.
+# \- is invisible except where a line actually needs to break there, so
+# applying it document-wide is safe -- full-width prose never needs it.
+# This has to happen as a post-pass on the generated LaTeX rather than
+# via the markdown source: Markdown's own backslash-escape handling
+# would eat the "\" and leave a permanent, always-visible "-" instead.
+sed -i 's/NASDAQ/NAS\\-DAQ/g' "$OUT_DIR/main.tex"
 
 echo "Wrote $OUT_DIR/main.tex and $OUT_DIR/universality_gap.pdf"
 

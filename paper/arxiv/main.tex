@@ -78,6 +78,13 @@
 \usepackage{array}
 \usepackage{xurl}
 \setlength{\emergencystretch}{3em}
+\setlength{\tabcolsep}{3pt}
+% Allow line breaks after underscores (e.g. "sensor_log") so long
+% identifiers wrap instead of overflowing narrow table columns.
+\makeatletter
+\let\bpd@origunderscore\_
+\renewcommand{\_}{\bpd@origunderscore\allowbreak}
+\makeatother
 \ifLuaTeX
   \usepackage{selnolig}  % disable illegal ligatures
 \fi
@@ -131,7 +138,7 @@ near-constant MSBs; the real-world results (1.00×--1.19×) show the range
 for data with higher per-field entropy. On the Intel Berkeley Lab sensor
 dataset (2.2 million real IoT readings), the algorithm auto-detects
 width=24 and achieves a 19\% compression improvement over ZSTD. On
-NASDAQ ITCH financial data (3.7 million order records), Algorithm 2
+NAS\-DAQ ITCH financial data (3.7 million order records), Algorithm 2
 correctly detects the 36-byte record width, but the per-block
 compression comparison confirms that decomposition cannot help (gap =
 1.00×) --- demonstrating that entropy reduction alone does not guarantee
@@ -297,7 +304,7 @@ if H_base < 1.0 then return 0     // already low entropy
 w* ← 0
 H_best ← H_base
 
-for each w  in  W do
+for each w in W do
     if n < 4w then continue        // need >=4 elements
     planes ← byte_shuffle(B, w)
     H_avg ← (1/w) sum_{p=0}^{w-1} Shannon_entropy(planes[p])
@@ -353,10 +360,10 @@ threshold ← max(0.05, 0.5 · max(bmf))
 C ← top 5 local maxima of bmf above threshold, sorted by bmf descending
 
 // Phase 3: Add fallback widths
-C ← C  U  {2, 4, 8}
+C ← C U {2, 4, 8}
 
 // Phase 4: Entropy validation
-for each w  in  C do
+for each w in C do
     if n < 4w then continue
     planes ← byte_shuffle(B, w)
     H_avg ← (1/w) sum_{p=0}^{w-1} Shannon_entropy(planes[p])
@@ -390,7 +397,7 @@ later candidates must beat \(\tau \times H_{\text{best\_so\_far}}\),
 making the result order-dependent within the candidate set. Algorithm 2
 compares all candidates against the fixed baseline
 \(\tau \times H_{\text{base}}\), making it order-independent. On four of
-five datasets the results are identical; NASDAQ ITCH differs because
+five datasets the results are identical; NAS\-DAQ ITCH differs because
 Algorithm 2 discovers width=36 (outside Algorithm 1's candidate set). In
 general the cascading threshold is stricter and could produce different
 results for marginal cases.
@@ -408,7 +415,7 @@ chosen to allow harmonics with marginally lower entropy while still
 preferring the fundamental.
 
 \textbf{Advantages over Algorithm 1:} (1) Supports arbitrary widths up
-to \(L\) without a predefined candidate set --- width 36 (NASDAQ ITCH),
+to \(L\) without a predefined candidate set --- width 36 (NAS\-DAQ ITCH),
 width 28 (SAO catalog), width 24 (Intel Lab), and any non-standard width
 are discovered automatically. For widths present in the fallback set (2,
 4, 8), the byte-match phase may not produce a peak at the correct lag;
@@ -499,7 +506,7 @@ sao (w=28)
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
 dickens (w=0)
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-NASDAQ
+NAS\-DAQ
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
 Correct (det.)
 \end{minipage} \\
@@ -524,7 +531,7 @@ Correct (det.)
 \ding{51} & 12 & 4/5 \\
 \end{longtable}
 
-NASDAQ is excluded from the ``Correct'' count because its
+NAS\-DAQ is excluded from the ``Correct'' count because its
 detection-stage behavior requires special interpretation: Algorithm 1
 detects width=12 (a divisor of the true width 36) at all thresholds
 \(\tau \ge 0.75\), with 22--24\% entropy reduction. This is not a false
@@ -534,7 +541,7 @@ sub-structure --- but it does not produce a compression improvement
 entropy reduction, also without compression improvement.
 
 \(\tau = 0.80\) is the most conservative threshold achieving 5/5
-correctness on the non-NASDAQ datasets. \(\tau = 0.90\) also achieves
+correctness on the non-NAS\-DAQ datasets. \(\tau = 0.90\) also achieves
 5/5, but sits between two failing thresholds (0.85 at 3/5, 0.95 at 4/5),
 suggesting it may be a fragile coincidence on this dataset collection.
 \(\tau = 0.80\) provides more margin below the SAO detection point (27\%
@@ -542,7 +549,7 @@ reduction) and is therefore preferred. Below 0.80, SAO is missed; at
 0.85, both mr and sao produce incorrect widths.
 
 The two-stage design (detection + per-block compression comparison)
-provides robustness beyond the threshold alone: NASDAQ's detected widths
+provides robustness beyond the threshold alone: NAS\-DAQ's detected widths
 are always rejected at the compression comparison stage because
 shuffle+delta+ZSTD does not produce shorter output than plain ZSTD,
 resulting in no regression at any threshold. This defense-in-depth means
@@ -609,7 +616,7 @@ MRI brain scan (Silesia \texttt{mr}) & 16-bit DICOM pixels & 2 & 2.72:1
 & 2.76:1 & \textbf{1.02×} \\
 SAO Star Catalog (Silesia \texttt{sao}) & 28B astronomical records & 28
 & 1.25:1 & 1.26:1 & \textbf{1.01×} \\
-NASDAQ ITCH Add Orders (real) & 36B: 6B nanos ts + 8B order ref + 8B
+NAS\-DAQ ITCH Add Orders (real) & 36B: 6B nanos ts + 8B order ref + 8B
 stock + \ldots{} & 36 & 2.80:1 & 2.80:1 & \textbf{1.00×} \\
 \end{longtable}
 
@@ -640,7 +647,7 @@ Sensor telemetry (synth.) & 0.00 bits & 5.00 bits & 5.00 & 40.8× \\
 Intel Lab sensors (real) & 0.17 bits & 6.07 bits & 5.90 & 1.19× \\
 MRI (Silesia \texttt{mr}) & 0.47 bits & 5.05 bits & 4.58 & 1.02× \\
 SAO (Silesia \texttt{sao}) & 3.19 bits & 6.08 bits & 2.89 & 1.01× \\
-NASDAQ ITCH (real) & \textasciitilde6.0 bits & \textasciitilde7.5 bits &
+NAS\-DAQ ITCH (real) & \textasciitilde6.0 bits & \textasciitilde7.5 bits &
 \textasciitilde1.5 & 1.00× \\
 \end{longtable}
 
@@ -688,7 +695,7 @@ windows.
 \includegraphics[width=0.75\textwidth,height=\textheight]{universality_gap.pdf}
 \caption{Universality gap \(G\) versus absolute MSB entropy for all five
 datasets: sensor\_log (0.00, 40.8), Intel Lab (0.17, 1.19), MRI (0.47,
-1.02), SAO (3.19, 1.01), NASDAQ (6.0, 1.00). The gap decreases toward
+1.02), SAO (3.19, 1.01), NAS\-DAQ (6.0, 1.00). The gap decreases toward
 1.0 as MSB entropy increases, confirming that near-zero MSB entropy is
 the primary driver of large gaps.}
 \end{figure}
@@ -917,7 +924,7 @@ mr & 9.97 MB & Silesia Corpus {[}10{]} & 2 bytes & MRI brain scan,
 16-bit grayscale DICOM pixel data \\
 sao & 7.25 MB & Silesia Corpus {[}10{]} & 28 bytes & SAO Star Catalog,
 fixed-width astronomical records \\
-NASDAQ ITCH & 131.8 MB & NASDAQ {[}17{]} & 36 bytes & Add Order
+NAS\-DAQ ITCH & 131.8 MB & NAS\-DAQ {[}17{]} & 36 bytes & Add Order
 messages: 6B nanosecond timestamp + 8B order ref + 8B stock symbol +
 fields \\
 \end{longtable}
@@ -935,7 +942,7 @@ results (1.01×--1.02×) represent real data with higher per-field
 entropy. Additional real-world binary datasets with estimated gaps in
 the 2×--10× range include USGS LiDAR LAS point clouds (30-byte records)
 {[}18{]} and LBNL/ICSI enterprise packet captures (90-byte records)
-{[}19{]}. NASDAQ ITCH 5.0 {[}17{]} was tested and showed no benefit (gap
+{[}19{]}. NAS\-DAQ ITCH 5.0 {[}17{]} was tested and showed no benefit (gap
 = 1.00×), validating the algorithm's correct rejection of high-entropy
 structured data.
 
@@ -951,7 +958,7 @@ same block, (5) compute the universality gap \(G\).
 
 All width detection results in Sections 7.1--7.4 use Algorithm 1.
 Algorithm 2 produces identical width selections on four of five
-datasets; on NASDAQ ITCH, Algorithm 2 detects the true width=36 (outside
+datasets; on NAS\-DAQ ITCH, Algorithm 2 detects the true width=36 (outside
 Algorithm 1's candidate set) while Algorithm 1 detects w=12. In both
 cases the per-block compression comparison rejects the shuffle result.
 Section 7.1 includes Algorithm 2's byte-match profiles for validation.
@@ -1007,7 +1014,7 @@ mr & 2 & 2 & 20--22\% on activating blocks & \textasciitilde100
 \(\mu\)s/block \\
 sao & 28 & 28 & 27\% (7.4 → 5.4 bits) & \textasciitilde200
 \(\mu\)s/block \\
-NASDAQ ITCH & 36 & 12 (Alg 1) / 36 (Alg 2) & 23\% at w=12, 48\% at w=36
+NAS\-DAQ ITCH & 36 & 12 (Alg 1) / 36 (Alg 2) & 23\% at w=12, 48\% at w=36
 & \textasciitilde200 \(\mu\)s/block \\
 \end{longtable}
 
@@ -1020,7 +1027,7 @@ remaining 70\% of blocks (higher-entropy regions, block entropy
 correctly falls back to plain ZSTD. The aggregate entropy reduction
 across all blocks is \textasciitilde14\%.
 
-Note on NASDAQ ITCH: Algorithm 1 detects width=12 (a divisor of 36,
+Note on NAS\-DAQ ITCH: Algorithm 1 detects width=12 (a divisor of 36,
 present in the candidate set) with 23\% entropy reduction. Algorithm 2
 detects the true record width of 36 with 48\% entropy reduction --- a
 strong byte-match peak at lag=36 (frequency 0.84). However, in both
@@ -1089,11 +1096,11 @@ sensor\_log & 3 (0.062) & 11 (0.062) & 3 & 8 & Yes \\
 intel\_lab & 24 (0.365) & 48 (0.314) & 5 & 24 & Yes \\
 mr & 2 (0.407) & 4 (0.384) & 5--6 & 2* & Yes \\
 sao & 56 (0.076) & 28 (0.071) & 5 & 28 & Yes \\
-NASDAQ ITCH & 36 (0.843) & 8 (0.338) & 4 & 36† & No (Alg 1: 12) \\
+NAS\-DAQ ITCH & 36 (0.843) & 8 (0.338) & 4 & 36† & No (Alg 1: 12) \\
 \end{longtable}
 
 *mr: detected on \textasciitilde30\% of blocks; remaining blocks return
-\(w^* = 0\). †NASDAQ ITCH: Algorithm 2 detects w=36 (true record width),
+\(w^* = 0\). †NAS\-DAQ ITCH: Algorithm 2 detects w=36 (true record width),
 but the per-block compression comparison rejects it
 (\(G = 1.00\times\)). Algorithm 1 detects w=12 (a divisor of 36, present
 in the candidate set), also rejected by the compression comparison. The
@@ -1146,7 +1153,7 @@ intel\_lab (real) & 6.1 bits & 3.58:1 & 4.26:1 & 1.19× & 0.17 & 6.07 &
 5.90 \\
 mr (real) & 2.7 bits & 2.72:1 & 2.76:1 & 1.02× & 0.47 & 5.05 & 4.58 \\
 sao (real) & 7.4 bits & 1.25:1 & 1.26:1 & 1.01× & 3.19 & 6.08 & 2.89 \\
-NASDAQ ITCH (real) & 5.3 bits & 2.80:1 & 2.80:1 & 1.00× &
+NAS\-DAQ ITCH (real) & 5.3 bits & 2.80:1 & 2.80:1 & 1.00× &
 \textasciitilde6.0 & \textasciitilde7.5 & \textasciitilde1.5 \\
 \end{longtable}
 
@@ -1291,7 +1298,7 @@ arbitrary widths up to \(L = 64\) without a predefined set, which means
 widths like 28 (SAO catalog) and 24 (Intel Lab) are discovered
 automatically rather than requiring manual inclusion. Both algorithms
 produce identical width detection results on four of five tested
-datasets; on NASDAQ ITCH, Algorithm 2 detects the true width=36 while
+datasets; on NAS\-DAQ ITCH, Algorithm 2 detects the true width=36 while
 Algorithm 1 detects w=12, with both rejected by the per-block
 compression comparison (Section 7.1).
 
@@ -1342,7 +1349,7 @@ practice, the vast majority of binary record formats use widths under 64
 bytes.
 
 \textbf{The universality gap is data-dependent.} Our five-point
-characterization spans from no improvement (NASDAQ ITCH, \(G = 1.00\))
+characterization spans from no improvement (NAS\-DAQ ITCH, \(G = 1.00\))
 to 40.8× (synthetic sensor telemetry). Promising future targets for the
 2×--10× range include USGS LiDAR LAS point clouds (30-byte records)
 {[}18{]} and enterprise packet captures (90-byte records) {[}19{]}.
@@ -1351,7 +1358,7 @@ structured binary data entirely --- developing a standard binary
 benchmark corpus is a community need.
 
 \textbf{Entropy reduction does not guarantee compression improvement.}
-NASDAQ ITCH demonstrates this clearly: Algorithm 2 detects the true
+NAS\-DAQ ITCH demonstrates this clearly: Algorithm 2 detects the true
 width=36 with 48\% entropy reduction, yet the universality gap is 1.00×
 because ZSTD's LZ matching already captures the interleaved patterns.
 Order-0 Shannon entropy (which the detection threshold uses) does not
@@ -1453,14 +1460,14 @@ evaluates a fixed candidate set of 15 widths; Algorithm 2 uses sampled
 byte-match frequency to detect periodic byte repetitions at arbitrary
 lags up to 64, reducing the number of validated candidates to 5--8 while
 supporting any record width without a predefined set. Algorithm 2
-successfully detected the 36-byte record width in NASDAQ ITCH data
+successfully detected the 36-byte record width in NAS\-DAQ ITCH data
 (outside Algorithm 1's candidate set), confirming its ability to
 discover arbitrary widths. Both algorithms require a two-stage design:
 entropy-based detection followed by per-block compression comparison,
 since entropy reduction alone does not guarantee compression improvement
-(NASDAQ: 48\% entropy reduction, \(G = 1.00\times\)).
+(NAS\-DAQ: 48\% entropy reduction, \(G = 1.00\times\)).
 
-Our five-point empirical curve --- with gaps ranging from 1.00× (NASDAQ
+Our five-point empirical curve --- with gaps ranging from 1.00× (NAS\-DAQ
 financial data) to 40.8× (synthetic sensor telemetry) --- demonstrates
 that the gap is predicted by the MSB-to-LSB entropy gradient and the
 absolute MSB entropy within multi-byte fields, providing a practical
@@ -1557,7 +1564,7 @@ database systems,'' Proc. VLDB Endowment, vol.~2, no. 2, pp.~1664--1665,
 {[}16{]} P. Bodik et al., ``Intel Berkeley Research Lab sensor data,''
 2004, \url{http://db.csail.mit.edu/labdata/labdata.html}.
 
-{[}17{]} NASDAQ, ``ITCH 5.0 total view data,''
+{[}17{]} NAS\-DAQ, ``ITCH 5.0 total view data,''
 \url{https://emi.nasdaq.com/ITCH/Nasdaq\%20ITCH/}.
 
 {[}18{]} USGS, ``3D Elevation Program (3DEP) LiDAR data,''
