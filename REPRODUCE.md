@@ -3,10 +3,9 @@
 ## Prerequisites
 
 - C++20 compiler (GCC 11+, Clang 14+, or MSVC 2022)
-- CMake 3.20+
-- zstd library (libzstd-dev on Ubuntu, or set ZSTD_ROOT)
+- CMake 3.20+ (fetches and builds zstd v1.5.7 from source automatically)
 - ~2 GB disk space for datasets
-- Internet connection for dataset downloads
+- Internet connection for dataset downloads and the first CMake configure
 
 ## Quick Start
 
