@@ -1,11 +1,11 @@
 cff-version: 1.2.0
 title: "Entropy-Minimized Byte-Plane Decomposition"
-message: "If you use this software, please cite the paper."
+message: "If you use this software, please cite the paper below."
 type: software
 authors:
   - name: "Steffen Goehring"
 license: MIT
-repository-code: "https://github.com/amycomp/byte-plane-decomposition"
+repository-code: "https://github.com/leeroy37/byte-plane-decomposition"
 abstract: >-
   Schema-free detection of optimal byte-plane decomposition width
   for lossless compression via entropy minimization, with universality
@@ -16,3 +16,16 @@ keywords:
   - byte-plane decomposition
   - entropy
   - structured data
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.21924012"
+    description: "Zenodo archive of the paper (v1)"
+preferred-citation:
+  type: article
+  title: "Entropy-Minimized Byte-Plane Decomposition: Auto-Detection and the Universality Gap in Lossless Compression"
+  authors:
+    - name: "Steffen Goehring"
+  doi: "10.5281/zenodo.21924012"
+  url: "https://zenodo.org/records/21924012"
+  year: 2026
+  month: 8

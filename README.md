@@ -1,5 +1,7 @@
 # byte-plane-decomposition
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21924012.svg)](https://doi.org/10.5281/zenodo.21924012)
+
 Schema-free detection of optimal byte-plane decomposition width for lossless compression, with universality gap measurements across structured binary data.
 
 Implementation for the paper **"Entropy-Minimized Byte-Plane Decomposition: Auto-Detection and the Universality Gap in Lossless Compression."**
@@ -151,4 +153,4 @@ paper/
 
 See [CITATION.cff](CITATION.cff) or cite as:
 
-> Entropy-Minimized Byte-Plane Decomposition: Auto-Detection and the Universality Gap in Lossless Compression. https://github.com/leeroy37/byte-plane-decomposition, 2025.
+> Steffen Goehring. Entropy-Minimized Byte-Plane Decomposition: Auto-Detection and the Universality Gap in Lossless Compression. Zenodo, 2026. https://doi.org/10.5281/zenodo.21924012
