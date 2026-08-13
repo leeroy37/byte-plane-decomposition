@@ -7,10 +7,15 @@
 #include <random>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 
 int main(int argc, char* argv[]) {
     const char* output = (argc > 1) ? argv[1] : "data/sensor_log.bin";
     size_t size = 16 * 1024 * 1024; // 16 MB
+
+    auto parent = std::filesystem::path(output).parent_path();
+    if (!parent.empty())
+        std::filesystem::create_directories(parent);
 
     std::ofstream out(output, std::ios::binary);
     if (!out) { std::cerr << "Cannot create: " << output << "\n"; return 1; }

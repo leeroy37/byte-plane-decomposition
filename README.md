@@ -16,17 +16,18 @@ Byte-plane decomposition — reordering serialized multi-byte data by byte posit
 |-------------|---------|
 | C++ compiler | GCC 11+, Clang 14+, or MSVC 2022 (C++20) |
 | CMake | 3.20+ |
-| zstd | libzstd-dev (Ubuntu/Debian) / zstd (Homebrew) |
 | Disk space | ~2 GB for all datasets |
+
+zstd v1.5.7 is fetched and built from source automatically by CMake (`FetchContent`) — no system library install needed, but the first configure requires network access.
 
 **Ubuntu/Debian:**
 ```bash
-sudo apt install build-essential cmake libzstd-dev
+sudo apt install build-essential cmake
 ```
 
 **macOS (Homebrew):**
 ```bash
-brew install cmake zstd
+brew install cmake
 ```
 
 ---
@@ -47,11 +48,6 @@ Binaries are written to `build/`.
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
-```
-
-If zstd is not on the default search path, set `ZSTD_ROOT`:
-```bash
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DZSTD_ROOT=/path/to/zstd
 ```
 
 ---
