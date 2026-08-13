@@ -12,3 +12,10 @@
 \usepackage{array}
 \usepackage{xurl}
 \setlength{\emergencystretch}{3em}
+\setlength{\tabcolsep}{3pt}
+% Allow line breaks after underscores (e.g. "sensor_log") so long
+% identifiers wrap instead of overflowing narrow table columns.
+\makeatletter
+\let\bpd@origunderscore\_
+\renewcommand{\_}{\bpd@origunderscore\allowbreak}
+\makeatother

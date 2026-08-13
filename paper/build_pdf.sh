@@ -77,9 +77,12 @@ text = re.sub(r"(?<!<)https?://\S+", wrap, text)
 open(dst_path, "w", encoding="utf-8").write(text)
 PYEOF
 
+BUILD_TEX="$(mktemp -t bpd_paper_XXXX.tex)"
+trap 'rm -f "$BUILD_MD" "$BUILD_TEX"' EXIT
+
 pandoc "$BUILD_MD" \
-  -o "$SCRIPT_DIR/paper.pdf" \
-  --pdf-engine=xelatex \
+  -o "$BUILD_TEX" \
+  -s \
   -H "$SCRIPT_DIR/header.tex" \
   -V fontsize=11pt \
   -V papersize=letter \
@@ -87,5 +90,16 @@ pandoc "$BUILD_MD" \
   -V linkcolor=NavyBlue \
   -V urlcolor=NavyBlue \
   -V citecolor=NavyBlue
+
+# Give "NASDAQ" a LaTeX discretionary hyphen (\-) so it can wrap inside
+# the narrowest table columns instead of overflowing into the next
+# column. This has to happen as a post-pass on the generated LaTeX
+# rather than via the markdown source: Markdown's own backslash-escape
+# handling would eat the "\" and leave a permanent, always-visible "-"
+# instead (see build_tex.sh for the same fix, more detail there).
+sed -i 's/NASDAQ/NAS\\-DAQ/g' "$BUILD_TEX"
+
+( cd "$(dirname "$BUILD_TEX")" && xelatex -interaction=nonstopmode -jobname="$(basename "$BUILD_TEX" .tex)" "$BUILD_TEX" >/dev/null && xelatex -interaction=nonstopmode -jobname="$(basename "$BUILD_TEX" .tex)" "$BUILD_TEX" >/dev/null )
+cp "${BUILD_TEX%.tex}.pdf" "$SCRIPT_DIR/paper.pdf"
 
 echo "Wrote $SCRIPT_DIR/paper.pdf"
