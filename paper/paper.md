@@ -284,17 +284,17 @@ For $\delta = 1000$: $f_{\text{carry}} = 232/256 \approx 0.906$, predicting a bi
 
 ### 5.3 Validation on Sensor Telemetry
 
-Per-plane entropy profile (8-byte struct, width=8, averaged over 16 blocks of 64 KB):
+Per-plane entropy profile (8-byte struct, width=8, block 0, 64 KB):
 
 | Plane | Field | Avg Entropy (raw) | After Delta | Class |
 |-------|-------|------------------|-------------|-------|
 | 0 | timestamp LSB | 5.000 | 0.002 | Constant ($\delta \bmod 256 = 232$) |
 | 1 | timestamp byte 1 | 8.000 | 0.451 | Sparse (carry propagation) |
 | 2 | timestamp byte 2 | 6.972 | 0.116 | Sparse |
-| 3 | timestamp MSB | 0.187 | 0.002 | Constant |
-| 4 | temp LSB | 1.681 | 0.013 | Sparse |
+| 3 | timestamp MSB | 0.000 | 0.000 | Constant |
+| 4 | temp LSB | 0.820 | 0.007 | Sparse |
 | 5 | temp MSB | 0.000 | 0.002 | Constant |
-| 6 | humidity LSB | 1.717 | 0.013 | Sparse |
+| 6 | humidity LSB | 1.240 | 0.010 | Sparse |
 | 7 | humidity MSB | 0.000 | 0.002 | Constant |
 
 Four planes (0, 3, 5, 7) are constant-class after delta encoding. Four planes (1, 2, 4, 6) are sparse, including the carry-propagation plane at position 1 (entropy 0.451, near the class boundary). The carry plane's bimodal distribution (90.6% `0x04`, 9.4% `0x03`) is determined by the LSB overflow frequency: $(1000 \bmod 256) / 256 = 232/256 \approx 0.906$.
@@ -325,7 +325,7 @@ ZSTD level 3 is used throughout. ZSTD context is reused across blocks to amortiz
 
 For each dataset: (1) compute block-level Shannon entropy, (2) run width detection algorithm with candidate set $W = \{2,3,4,5,6,7,8,10,12,14,16,20,24,28,32\}$, (3) at the detected width, compute per-plane entropy before and after delta encoding, (4) compress with shuffle+delta+ZSTD and compare against plain ZSTD on the same block, (5) compute the universality gap $G$.
 
-All width detection results in Sections 7.1–7.4 use Algorithm 1. Algorithm 2 produces identical width selections on four of five datasets; on NASDAQ ITCH, Algorithm 2 detects the true width=36 (outside Algorithm 1's candidate set) while Algorithm 1 detects w=12. In both cases the per-block compression comparison rejects the shuffle result. Section 7.1 includes Algorithm 2's byte-match profiles for validation.
+All width detection results in Sections 7.1–7.4 use Algorithm 1. Algorithm 2 produces the same aggregate width on all five datasets. Per-block agreement is 100% on three datasets (sensor_log, intel_lab, mr). On SAO, 26/32 blocks agree: Algorithm 1 selects w=14 on 6 borderline blocks where the cascading threshold lets w=14 win before w=28 is evaluated; Algorithm 2 consistently selects w=28 on all 32 blocks via byte-match detection. On NASDAQ ITCH, Algorithm 2 detects the true width=36 (outside Algorithm 1's candidate set) while Algorithm 1 detects w=12; in both cases the per-block compression comparison rejects the shuffle result. Section 7.1 includes Algorithm 2's byte-match profiles for validation.
 
 All entropy values are order-0 Shannon entropy of the byte frequency distribution, measured in bits per byte (range [0, 8]). Width detection (Algorithms 1 and 2) evaluates raw (pre-delta) per-plane entropy. The three-class partition analysis (Section 5) uses post-delta entropy.
 
@@ -374,10 +374,11 @@ The algorithm produces **zero false positives** on the entire Silesia Corpus tex
 | sensor_log | 3 (0.062) | 11 (0.062) | 3 | 8 | Yes |
 | intel_lab | 24 (0.365) | 48 (0.314) | 5 | 24 | Yes |
 | mr | 2 (0.407) | 4 (0.384) | 5–6 | 2* | Yes |
-| sao | 56 (0.076) | 28 (0.071) | 5 | 28 | Yes |
+| sao | 56 (0.076) | 28 (0.071) | 5 | 28 | 26/32‡ |
 | NASDAQ ITCH | 36 (0.843) | 8 (0.338) | 4 | 36† | No (Alg 1: 12) |
 
 *mr: detected on ~30% of blocks; remaining blocks return $w^* = 0$.
+‡SAO: aggregate width matches (both select w=28); per-block agreement is 26/32 (81%). Algorithm 1 selects w=14 on 6 blocks where width=14 entropy reduction reaches 20%, the threshold boundary. Algorithm 2 consistently selects w=28 on all 32 blocks via byte-match detection.
 †NASDAQ ITCH: Algorithm 2 detects w=36 (true record width), but the per-block compression comparison rejects it ($G = 1.00\times$). Algorithm 1 detects w=12 (a divisor of 36, present in the candidate set), also rejected by the compression comparison. The strong byte-match peak at lag=36 (0.843) confirms that Algorithm 2 can identify record widths outside Algorithm 1's candidate set.
 
 For sensor_log, the byte-match phase produces weak peaks at lags 3, 11, 19, 27 (period-8 offsets where specific byte positions happen to share values); the correct width=8 is recovered via the fallback set and entropy validation, not the byte-match mechanism.
@@ -431,7 +432,7 @@ Width detection adds computational cost to the compression path only; decompress
 
 Each candidate width requires one shuffle operation ($O(n)$) and one entropy computation ($O(n)$), for a total cost of $O(|W| \cdot n)$ per block. On 64 KB blocks, this amounts to ~100–200 μs per candidate width. Algorithm 2 adds a sampled byte-match phase ($O(L \cdot 4096) \approx 260K$ comparisons, negligible versus shuffle cost) but reduces the number of validated candidates from 15 to typically 5–8, yielding a net reduction in overhead.
 
-Algorithm 2 removes the fixed candidate set limitation: it detects arbitrary widths up to $L = 64$ without a predefined set, which means widths like 28 (SAO catalog) and 24 (Intel Lab) are discovered automatically rather than requiring manual inclusion. Both algorithms produce identical width detection results on four of five tested datasets; on NASDAQ ITCH, Algorithm 2 detects the true width=36 while Algorithm 1 detects w=12, with both rejected by the per-block compression comparison (Section 7.1).
+Algorithm 2 removes the fixed candidate set limitation: it detects arbitrary widths up to $L = 64$ without a predefined set, which means widths like 28 (SAO catalog) and 24 (Intel Lab) are discovered automatically rather than requiring manual inclusion. Both algorithms select the same aggregate width on all five datasets. Per-block agreement is 100% on three datasets; on SAO, 26/32 blocks agree (Algorithm 1 selects w=14 on 6 borderline blocks due to the cascading threshold; see Section 7.1). On NASDAQ ITCH, Algorithm 2 detects the true width=36 while Algorithm 1 detects w=12, with both rejected by the per-block compression comparison (Section 7.1).
 
 ---
 

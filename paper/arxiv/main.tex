@@ -828,8 +828,7 @@ appearing at different position indices.
 \subsubsection{5.3 Validation on Sensor
 Telemetry}\label{validation-on-sensor-telemetry}}
 
-Per-plane entropy profile (8-byte struct, width=8, averaged over 16
-blocks of 64 KB):
+Per-plane entropy profile (8-byte struct, width=8, block 0, 64 KB):
 
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.1346}}
@@ -857,10 +856,10 @@ Class
 (\(\delta \bmod 256 = 232\)) \\
 1 & timestamp byte 1 & 8.000 & 0.451 & Sparse (carry propagation) \\
 2 & timestamp byte 2 & 6.972 & 0.116 & Sparse \\
-3 & timestamp MSB & 0.187 & 0.002 & Constant \\
-4 & temp LSB & 1.681 & 0.013 & Sparse \\
+3 & timestamp MSB & 0.000 & 0.000 & Constant \\
+4 & temp LSB & 0.820 & 0.007 & Sparse \\
 5 & temp MSB & 0.000 & 0.002 & Constant \\
-6 & humidity LSB & 1.717 & 0.013 & Sparse \\
+6 & humidity LSB & 1.240 & 0.010 & Sparse \\
 7 & humidity MSB & 0.000 & 0.002 & Constant \\
 \end{longtable}
 
@@ -957,11 +956,16 @@ compress with shuffle+delta+ZSTD and compare against plain ZSTD on the
 same block, (5) compute the universality gap \(G\).
 
 All width detection results in Sections 7.1--7.4 use Algorithm 1.
-Algorithm 2 produces identical width selections on four of five
-datasets; on NAS\-DAQ ITCH, Algorithm 2 detects the true width=36 (outside
-Algorithm 1's candidate set) while Algorithm 1 detects w=12. In both
-cases the per-block compression comparison rejects the shuffle result.
-Section 7.1 includes Algorithm 2's byte-match profiles for validation.
+Algorithm 2 produces the same aggregate width on all five datasets.
+Per-block agreement is 100\% on three datasets (sensor\_log, intel\_lab,
+mr). On SAO, 26/32 blocks agree: Algorithm 1 selects w=14 on 6
+borderline blocks where the cascading threshold lets w=14 win before
+w=28 is evaluated; Algorithm 2 consistently selects w=28 on all 32
+blocks via byte-match detection. On NAS\-DAQ ITCH, Algorithm 2 detects the
+true width=36 (outside Algorithm 1's candidate set) while Algorithm 1
+detects w=12; in both cases the per-block compression comparison rejects
+the shuffle result. Section 7.1 includes Algorithm 2's byte-match
+profiles for validation.
 
 All entropy values are order-0 Shannon entropy of the byte frequency
 distribution, measured in bits per byte (range {[}0, 8{]}). Width
@@ -1095,12 +1099,16 @@ Matches Alg 1?
 sensor\_log & 3 (0.062) & 11 (0.062) & 3 & 8 & Yes \\
 intel\_lab & 24 (0.365) & 48 (0.314) & 5 & 24 & Yes \\
 mr & 2 (0.407) & 4 (0.384) & 5--6 & 2* & Yes \\
-sao & 56 (0.076) & 28 (0.071) & 5 & 28 & Yes \\
+sao & 56 (0.076) & 28 (0.071) & 5 & 28 & 26/32‡ \\
 NAS\-DAQ ITCH & 36 (0.843) & 8 (0.338) & 4 & 36† & No (Alg 1: 12) \\
 \end{longtable}
 
 *mr: detected on \textasciitilde30\% of blocks; remaining blocks return
-\(w^* = 0\). †NAS\-DAQ ITCH: Algorithm 2 detects w=36 (true record width),
+\(w^* = 0\). ‡SAO: aggregate width matches (both select w=28); per-block
+agreement is 26/32 (81\%). Algorithm 1 selects w=14 on 6 blocks where
+width=14 entropy reduction reaches 20\%, the threshold boundary.
+Algorithm 2 consistently selects w=28 on all 32 blocks via byte-match
+detection. †NAS\-DAQ ITCH: Algorithm 2 detects w=36 (true record width),
 but the per-block compression comparison rejects it
 (\(G = 1.00\times\)). Algorithm 1 detects w=12 (a divisor of 36, present
 in the candidate set), also rejected by the compression comparison. The
@@ -1297,10 +1305,12 @@ Algorithm 2 removes the fixed candidate set limitation: it detects
 arbitrary widths up to \(L = 64\) without a predefined set, which means
 widths like 28 (SAO catalog) and 24 (Intel Lab) are discovered
 automatically rather than requiring manual inclusion. Both algorithms
-produce identical width detection results on four of five tested
-datasets; on NAS\-DAQ ITCH, Algorithm 2 detects the true width=36 while
-Algorithm 1 detects w=12, with both rejected by the per-block
-compression comparison (Section 7.1).
+select the same aggregate width on all five datasets. Per-block
+agreement is 100\% on three datasets; on SAO, 26/32 blocks agree
+(Algorithm 1 selects w=14 on 6 borderline blocks due to the cascading
+threshold; see Section 7.1). On NAS\-DAQ ITCH, Algorithm 2 detects the
+true width=36 while Algorithm 1 detects w=12, with both rejected by the
+per-block compression comparison (Section 7.1).
 
 \begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 

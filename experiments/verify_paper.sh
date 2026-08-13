@@ -186,6 +186,9 @@ if [ -f "$SAO" ]; then
     ACF_OUT=$("$BUILD/acf_analyze" "$SAO" 2>&1)
     ACF_W=$(echo "$ACF_OUT" | awk 'NR==6 {print $4}')
     check "sao Alg2 width" "28" "$ACF_W"
+    # Verify per-block agreement rate (Section 7.1 footnote: 26/32 = 81%)
+    ACF_AGREE=$(echo "$ACF_OUT" | grep "^Agreement:" | awk '{print $2}')
+    check "sao Alg1-vs-Alg2 per-block agreement" "26/32" "$ACF_AGREE"
 else skip "sao Alg2"; fi
 
 if [ -f "$NASDAQ" ]; then
